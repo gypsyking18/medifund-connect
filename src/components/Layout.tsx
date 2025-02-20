@@ -13,7 +13,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="container px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Heart className="h-6 w-6 text-primary" />
-            <span className="font-clash-display font-bold text-xl">MediFund Connect</span>
+            <span className="font-clash-display font-bold text-xl">careBridge</span>
           </div>
           
           <div className="hidden md:flex items-center space-x-6">
@@ -44,7 +44,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <Heart className="h-6 w-6 text-primary" />
-                <span className="font-clash-display font-bold">MediFund Connect</span>
+                <span className="font-clash-display font-bold">careBridge</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Empowering healthcare through decentralized crowdfunding.
@@ -116,7 +116,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
           
           <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} MediFund Connect. All rights reserved.
+            © {new Date().getFullYear()} careBridge. All rights reserved.
           </div>
         </div>
       </footer>
