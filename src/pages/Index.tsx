@@ -1,10 +1,12 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight, Heart, Shield, Users } from "lucide-react";
+import DonationModal from "@/components/DonationModal";
 
 const Index = () => {
+  const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       {/* Hero Section */}
@@ -30,7 +32,12 @@ const Index = () => {
             <Button size="lg" className="rounded-full">
               Start a Campaign <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="rounded-full">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="rounded-full"
+              onClick={() => setIsDonationModalOpen(true)}
+            >
               Start a Donation <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -86,6 +93,13 @@ const Index = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Donation Modal */}
+      <DonationModal 
+        isOpen={isDonationModalOpen}
+        onClose={() => setIsDonationModalOpen(false)}
+        campaignId={1} // This should be dynamically set based on the selected campaign
+      />
     </div>
   );
 };
