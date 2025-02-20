@@ -31,7 +31,7 @@ const Index = () => {
               Start a Campaign <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button size="lg" variant="outline" className="rounded-full">
-              Start a Donation
+              Start a Donation <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </motion.div>
