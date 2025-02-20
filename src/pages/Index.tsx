@@ -17,7 +17,7 @@ const Index = () => {
         >
           <div className="inline-flex items-center px-4 py-2 mb-8 bg-primary/10 rounded-full">
             <span className="text-primary font-semibold">
-              Decentralized Medical Crowdfunding
+              Decentralized Health Crowdfunding
             </span>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
