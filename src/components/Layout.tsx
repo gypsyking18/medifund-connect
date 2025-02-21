@@ -1,11 +1,41 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Heart } from 'lucide-react';
+import { Heart, Wallet } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
+  const [walletAddress, setWalletAddress] = useState<string>("");
+  const { toast } = useToast();
+
+  const connectWallet = async () => {
+    try {
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({
+          method: 'eth_requestAccounts',
+        });
+        setWalletAddress(accounts[0]);
+        toast({
+          title: "Wallet Connected",
+          description: "Your wallet has been successfully connected.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Please install MetaMask to connect your wallet.",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to connect wallet. Please try again.",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,10 +56,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <Button variant="ghost" onClick={() => navigate('/dao')}>
               DAO
             </Button>
+            <Button variant="ghost" onClick={() => navigate('/become-dao')}>
+              Become a DAO
+            </Button>
           </div>
 
-          <Button className="rounded-full">
-            Connect Wallet
+          <Button 
+            className="rounded-full flex items-center gap-2" 
+            onClick={connectWallet}
+          >
+            <Wallet className="h-4 w-4" />
+            {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connect Wallet'}
           </Button>
         </div>
       </nav>

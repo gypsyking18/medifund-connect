@@ -3,9 +3,17 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight, Heart, Shield, Users } from "lucide-react";
 import DonationModal from "@/components/DonationModal";
+import CreateCampaignModal from "@/components/CreateCampaignModal";
 
 const Index = () => {
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
+  const [isCreateCampaignModalOpen, setIsCreateCampaignModalOpen] = useState(false);
+
+  // This would typically come from your blockchain state
+  const mockActiveCampaigns = [
+    { id: 1, patientName: "John Doe", status: "Active" },
+    { id: 2, patientName: "Jane Smith", status: "Active" },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
@@ -29,7 +37,11 @@ const Index = () => {
             A transparent and secure platform for medical fundraising, powered by blockchain technology and governed by a community-driven DAO.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Button size="lg" className="rounded-full">
+            <Button 
+              size="lg" 
+              className="rounded-full"
+              onClick={() => setIsCreateCampaignModalOpen(true)}
+            >
               Start a Campaign <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button 
@@ -94,11 +106,15 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Donation Modal */}
+      {/* Modals */}
       <DonationModal 
         isOpen={isDonationModalOpen}
         onClose={() => setIsDonationModalOpen(false)}
-        campaignId={1} // This should be dynamically set based on the selected campaign
+        activeCampaigns={mockActiveCampaigns}
+      />
+      <CreateCampaignModal 
+        isOpen={isCreateCampaignModalOpen}
+        onClose={() => setIsCreateCampaignModalOpen(false)}
       />
     </div>
   );
