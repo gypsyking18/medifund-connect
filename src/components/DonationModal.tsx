@@ -30,9 +30,15 @@ interface DonationModalProps {
 
 const DonationModal = ({ isOpen, onClose, activeCampaigns }: DonationModalProps) => {
   const [campaignId, setCampaignId] = useState<string>("");
+  const [searchCampaignId, setSearchCampaignId] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const filteredCampaigns = activeCampaigns.filter(
+    campaign => campaign.status === "Active" && 
+    (searchCampaignId ? campaign.id.toString() === searchCampaignId : true)
+  );
 
   const handleDonation = async () => {
     try {
@@ -73,11 +79,21 @@ const DonationModal = ({ isOpen, onClose, activeCampaigns }: DonationModalProps)
         <DialogHeader>
           <DialogTitle>Make a Donation</DialogTitle>
           <DialogDescription>
-            Select a campaign and enter the amount you wish to donate.
+            Search for a campaign by ID or select from active campaigns.
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Search Campaign by ID</Label>
+            <Input
+              type="number"
+              placeholder="Enter campaign ID"
+              value={searchCampaignId}
+              onChange={(e) => setSearchCampaignId(e.target.value)}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label>Select Campaign</Label>
             <Select onValueChange={setCampaignId}>
@@ -87,9 +103,9 @@ const DonationModal = ({ isOpen, onClose, activeCampaigns }: DonationModalProps)
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Active Campaigns</SelectLabel>
-                  {activeCampaigns.map((campaign) => (
+                  {filteredCampaigns.map((campaign) => (
                     <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                      {campaign.patientName}
+                      #{campaign.id} - {campaign.patientName}
                     </SelectItem>
                   ))}
                 </SelectGroup>
