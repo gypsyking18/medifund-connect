@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -114,17 +113,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <ul className="space-y-2">
                 <li>
                   <Button variant="link" className="p-0 h-auto text-muted-foreground hover:text-foreground">
-                    Governance
-                  </Button>
-                </li>
-                <li>
-                  <Button variant="link" className="p-0 h-auto text-muted-foreground hover:text-foreground">
                     Vote
                   </Button>
                 </li>
                 <li>
                   <Button variant="link" className="p-0 h-auto text-muted-foreground hover:text-foreground">
                     Proposals
+                  </Button>
+                </li>
+                <li>
+                  <Button variant="link" className="p-0 h-auto text-muted-foreground hover:text-foreground">
+                    Become a DAO
                   </Button>
                 </li>
               </ul>
