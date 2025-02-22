@@ -17,7 +17,13 @@ const CONTRACT_ABI = [
   "function voteOnCampaign(uint256 campaignId, bool support) external"
 ];
 
+let isConnecting = false;
+
 export const connectWallet = async () => {
+  if (isConnecting) {
+    throw new Error("Wallet connection already in progress");
+  }
+
   console.log("Attempting to connect wallet...");
   
   if (typeof window === 'undefined') {
@@ -28,16 +34,29 @@ export const connectWallet = async () => {
     throw new Error("Please install MetaMask to connect your wallet");
   }
 
+  isConnecting = true;
+
   try {
-    // Request account access
+    // Check if already connected
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    if (accounts && accounts.length > 0) {
+      console.log("Already connected to account:", accounts[0]);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const address = accounts[0];
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      return { signer, contract, address };
+    }
+
+    // Request account access if not connected
     console.log("Requesting account access...");
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const newAccounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     
-    if (!accounts || accounts.length === 0) {
+    if (!newAccounts || newAccounts.length === 0) {
       throw new Error("No authorized accounts found");
     }
 
-    console.log("Account connected:", accounts[0]);
+    console.log("Account connected:", newAccounts[0]);
 
     // Create Web3 instance
     const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -50,7 +69,12 @@ export const connectWallet = async () => {
     return { signer, contract, address };
   } catch (error: any) {
     console.error("Wallet connection error:", error);
+    if (error.code === -32002) {
+      throw new Error("MetaMask connection already pending. Please check your MetaMask wallet.");
+    }
     throw new Error(error.message || "Failed to connect wallet");
+  } finally {
+    isConnecting = false;
   }
 };
 
