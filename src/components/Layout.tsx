@@ -1,40 +1,67 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Heart, Wallet } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { connectWallet } from '@/lib/web3';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const [walletAddress, setWalletAddress] = useState<string>("");
   const { toast } = useToast();
 
-  const connectWallet = async () => {
+  const handleConnectWallet = async () => {
     try {
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({
-          method: 'eth_requestAccounts',
-        });
-        setWalletAddress(accounts[0]);
-        toast({
-          title: "Wallet Connected",
-          description: "Your wallet has been successfully connected.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Please install MetaMask to connect your wallet.",
-        });
-      }
-    } catch (error) {
+      const { address } = await connectWallet();
+      setWalletAddress(address);
+      toast({
+        title: "Wallet Connected",
+        description: "Your wallet has been successfully connected.",
+      });
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to connect wallet. Please try again.",
+        description: error.message || "Failed to connect wallet. Please try again.",
       });
     }
   };
+
+  // Check if wallet is already connected on component mount
+  useEffect(() => {
+    const checkWalletConnection = async () => {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts.length > 0) {
+            setWalletAddress(accounts[0]);
+          }
+        } catch (error) {
+          console.error("Failed to check wallet connection:", error);
+        }
+      }
+    };
+
+    checkWalletConnection();
+
+    // Listen for account changes
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+        } else {
+          setWalletAddress("");
+        }
+      });
+    }
+
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', () => {});
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,7 +89,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
           <Button 
             className="rounded-full flex items-center gap-2" 
-            onClick={connectWallet}
+            onClick={handleConnectWallet}
           >
             <Wallet className="h-4 w-4" />
             {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connect Wallet'}
