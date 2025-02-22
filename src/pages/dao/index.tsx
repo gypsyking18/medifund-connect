@@ -1,6 +1,9 @@
 
 import React, { useState } from 'react';
 import VotingSection from '@/components/voting/VotingSection';
+import ProposalForm from '@/components/voting/ProposalForm';
+import CampaignVoting from '@/components/voting/CampaignVoting';
+import ProposalVoting from '@/components/voting/ProposalVoting';
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { FileText, Vote } from "lucide-react";
