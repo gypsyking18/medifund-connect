@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,33 +7,64 @@ import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { FeeProposal, Comment } from '@/types/voting';
+import { connectWallet, ERROR_MAP } from '@/lib/web3';
 
 const ProposalVoting = () => {
-  const [selectedProposal, setSelectedProposal] = useState<FeeProposal | null>(null);
+  const [proposals, setProposals] = useState<FeeProposal[]>([]);
   const [reason, setReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const fetchProposals = async () => {
+    try {
+      const { contract } = await connectWallet();
+      const proposalCounter = await contract.feeProposalCounter();
+      const proposalsData = [];
+
+      for (let i = 1; i <= proposalCounter; i++) {
+        const proposal = await contract.feeProposals(i);
+        proposalsData.push({
+          id: i,
+          proposedFee: proposal.proposedFee.toNumber(),
+          yesVotes: proposal.yesVotes.toNumber(),
+          noVotes: proposal.noVotes.toNumber(),
+          startTime: proposal.startTime.toNumber(),
+          endTime: proposal.endTime.toNumber(),
+          executed: proposal.executed,
+          totalMembersAtCreation: proposal.totalMembersAtCreation.toNumber()
+        });
+      }
+
+      setProposals(proposalsData);
+    } catch (error) {
+      console.error("Failed to fetch proposals:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProposals();
+  }, []);
+
   const handleVote = async (proposalId: number, support: boolean) => {
     try {
       setIsLoading(true);
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      // Add contract interaction here
-      // await contract.voteOnFeeProposal(proposalId, support);
+      const { contract } = await connectWallet();
       
-      if (reason.trim()) {
-        // Store comment logic here
-      }
-
+      const tx = await contract.voteOnFeeProposal(proposalId, support);
+      await tx.wait();
+      
       toast({
         title: "Success!",
         description: "Your vote has been recorded.",
       });
+
+      fetchProposals(); // Refresh proposals after voting
     } catch (error: any) {
+      const errorMessage = ERROR_MAP[error.code] || error.message;
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to submit vote.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -43,18 +74,23 @@ const ProposalVoting = () => {
   const handleExecute = async (proposalId: number) => {
     try {
       setIsLoading(true);
-      // Add contract interaction here
-      // await contract.executeFeeProposal(proposalId);
+      const { contract } = await connectWallet();
+      
+      const tx = await contract.executeFeeProposal(proposalId);
+      await tx.wait();
       
       toast({
         title: "Success!",
         description: "Proposal has been executed.",
       });
+      
+      fetchProposals(); // Refresh proposals after execution
     } catch (error: any) {
+      const errorMessage = ERROR_MAP[error.code] || error.message;
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to execute proposal.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -64,7 +100,7 @@ const ProposalVoting = () => {
   return (
     <div className="space-y-6">
       <div className="grid gap-6">
-        {[/* Add mock proposals here */].map((proposal) => (
+        {proposals.map((proposal) => (
           <Card key={proposal.id} className="p-6">
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -74,14 +110,21 @@ const ProposalVoting = () => {
                 <p className="text-sm text-muted-foreground">
                   Votes: {proposal.yesVotes} Yes / {proposal.noVotes} No
                 </p>
+                <p className="text-sm text-muted-foreground">
+                  Ends: {new Date(proposal.endTime * 1000).toLocaleString()}
+                </p>
               </div>
               {!proposal.executed && (
                 <Button
                   variant="outline"
                   onClick={() => handleExecute(proposal.id)}
-                  disabled={isLoading}
+                  disabled={isLoading || Date.now() < proposal.endTime * 1000}
                 >
-                  Execute
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    'Execute'
+                  )}
                 </Button>
               )}
             </div>
@@ -97,7 +140,7 @@ const ProposalVoting = () => {
               <div className="flex gap-4">
                 <Button
                   onClick={() => handleVote(proposal.id, true)}
-                  disabled={isLoading}
+                  disabled={isLoading || proposal.executed}
                   className="flex-1"
                   variant="outline"
                 >
@@ -110,7 +153,7 @@ const ProposalVoting = () => {
                 </Button>
                 <Button
                   onClick={() => handleVote(proposal.id, false)}
-                  disabled={isLoading}
+                  disabled={isLoading || proposal.executed}
                   className="flex-1"
                   variant="outline"
                 >
@@ -123,27 +166,6 @@ const ProposalVoting = () => {
                 </Button>
               </div>
             </div>
-
-            {proposal.comments && proposal.comments.length > 0 && (
-              <div className="mt-6">
-                <h4 className="font-semibold mb-2">Comments</h4>
-                <div className="space-y-2">
-                  {proposal.comments.map((comment, index) => (
-                    <div key={index} className="bg-muted p-3 rounded-md">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{comment.voter.slice(0, 6)}...{comment.voter.slice(-4)}</span>
-                        {comment.vote ? (
-                          <ThumbsUp className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <ThumbsDown className="h-3 w-3 text-red-500" />
-                        )}
-                      </div>
-                      <p className="text-sm mt-1">{comment.reason}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </Card>
         ))}
       </div>

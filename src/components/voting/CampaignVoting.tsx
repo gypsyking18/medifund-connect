@@ -1,39 +1,71 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
-import type { Campaign, Comment } from '@/types/voting';
+import type { Campaign } from '@/types/voting';
+import { connectWallet, ERROR_MAP } from '@/lib/web3';
 
 const CampaignVoting = () => {
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [reason, setReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const fetchCampaigns = async () => {
+    try {
+      const { contract } = await connectWallet();
+      const campaignCount = await contract.getCampaignCount();
+      const campaignsData = [];
+
+      for (let i = 1; i <= campaignCount; i++) {
+        const campaign = await contract.campaigns(i);
+        if (campaign.status === "PendingVerification") {
+          const description = await contract.getCampaignDescription(i);
+          campaignsData.push({
+            id: i,
+            status: campaign.status,
+            patientName: description.patientName,
+            description: "Medical Campaign",
+            yesVotes: (await contract.s_campaignYesVotes(i)).toNumber(),
+            noVotes: (await contract.s_campaignNoVotes(i)).toNumber(),
+            deadline: (await contract.campaignCreationTime(i)).toNumber() + (await contract.votingDuration()).toNumber()
+          });
+        }
+      }
+
+      setCampaigns(campaignsData);
+    } catch (error) {
+      console.error("Failed to fetch campaigns:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, []);
+
   const handleVote = async (campaignId: number, approve: boolean) => {
     try {
       setIsLoading(true);
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      // Add contract interaction here
-      // await contract.voteOnCampaign(campaignId, approve);
+      const { contract } = await connectWallet();
       
-      if (reason.trim()) {
-        // Store comment logic here
-      }
-
+      const tx = await contract.voteOnCampaign(campaignId, approve);
+      await tx.wait();
+      
       toast({
         title: "Success!",
         description: "Your vote has been recorded.",
       });
+
+      fetchCampaigns(); // Refresh campaigns after voting
     } catch (error: any) {
+      const errorMessage = ERROR_MAP[error.code] || error.message;
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to submit vote.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -43,18 +75,23 @@ const CampaignVoting = () => {
   const handleFinalize = async (campaignId: number) => {
     try {
       setIsLoading(true);
-      // Add contract interaction here
-      // await contract.finalizeCampaign(campaignId);
+      const { contract } = await connectWallet();
+      
+      const tx = await contract.finalizeCampaign(campaignId);
+      await tx.wait();
       
       toast({
         title: "Success!",
         description: "Campaign has been finalized.",
       });
+      
+      fetchCampaigns(); // Refresh campaigns after finalization
     } catch (error: any) {
+      const errorMessage = ERROR_MAP[error.code] || error.message;
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to finalize campaign.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -64,7 +101,7 @@ const CampaignVoting = () => {
   return (
     <div className="space-y-6">
       <div className="grid gap-6">
-        {[/* Add mock campaigns here */].map((campaign) => (
+        {campaigns.map((campaign) => (
           <Card key={campaign.id} className="p-6">
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -77,12 +114,15 @@ const CampaignVoting = () => {
                 <p className="text-sm text-muted-foreground">
                   Votes: {campaign.yesVotes} Yes / {campaign.noVotes} No
                 </p>
+                <p className="text-sm text-muted-foreground">
+                  Deadline: {new Date(campaign.deadline * 1000).toLocaleString()}
+                </p>
               </div>
               {campaign.status === "PendingVerification" && (
                 <Button
                   variant="outline"
                   onClick={() => handleFinalize(campaign.id)}
-                  disabled={isLoading}
+                  disabled={isLoading || Date.now() < campaign.deadline * 1000}
                 >
                   Finalize
                 </Button>
@@ -126,27 +166,6 @@ const CampaignVoting = () => {
                 </Button>
               </div>
             </div>
-
-            {campaign.comments && campaign.comments.length > 0 && (
-              <div className="mt-6">
-                <h4 className="font-semibold mb-2">Comments</h4>
-                <div className="space-y-2">
-                  {campaign.comments.map((comment, index) => (
-                    <div key={index} className="bg-muted p-3 rounded-md">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{comment.voter.slice(0, 6)}...{comment.voter.slice(-4)}</span>
-                        {comment.vote ? (
-                          <ThumbsUp className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <ThumbsDown className="h-3 w-3 text-red-500" />
-                        )}
-                      </div>
-                      <p className="text-sm mt-1">{comment.reason}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </Card>
         ))}
       </div>
