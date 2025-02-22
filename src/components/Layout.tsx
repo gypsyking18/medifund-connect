@@ -9,32 +9,41 @@ import { connectWallet } from '@/lib/web3';
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const [walletAddress, setWalletAddress] = useState<string>("");
+  const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
 
   const handleConnectWallet = async () => {
+    if (isConnecting) return;
+    
+    setIsConnecting(true);
     try {
+      console.log("Initiating wallet connection...");
       const { address } = await connectWallet();
+      console.log("Wallet connected successfully:", address);
       setWalletAddress(address);
       toast({
-        title: "Wallet Connected",
-        description: "Your wallet has been successfully connected.",
+        title: "Success",
+        description: "Wallet connected successfully!",
       });
     } catch (error: any) {
+      console.error("Wallet connection error in component:", error);
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Connection Failed",
         description: error.message || "Failed to connect wallet. Please try again.",
       });
+    } finally {
+      setIsConnecting(false);
     }
   };
 
-  // Check if wallet is already connected on component mount
   useEffect(() => {
     const checkWalletConnection = async () => {
       if (window.ethereum) {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
           if (accounts.length > 0) {
+            console.log("Found existing connection:", accounts[0]);
             setWalletAddress(accounts[0]);
           }
         } catch (error) {
@@ -45,23 +54,37 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     checkWalletConnection();
 
-    // Listen for account changes
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        console.log("Account changed:", accounts);
         if (accounts.length > 0) {
           setWalletAddress(accounts[0]);
+          toast({
+            title: "Account Changed",
+            description: "Wallet account has been updated.",
+          });
         } else {
           setWalletAddress("");
+          toast({
+            variant: "destructive",
+            title: "Disconnected",
+            description: "Wallet has been disconnected.",
+          });
         }
+      });
+
+      window.ethereum.on('chainChanged', () => {
+        window.location.reload();
       });
     }
 
     return () => {
       if (window.ethereum) {
         window.ethereum.removeListener('accountsChanged', () => {});
+        window.ethereum.removeListener('chainChanged', () => {});
       }
     };
-  }, []);
+  }, [toast]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,14 +113,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <Button 
             className="rounded-full flex items-center gap-2" 
             onClick={handleConnectWallet}
+            disabled={isConnecting}
           >
             <Wallet className="h-4 w-4" />
-            {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connect Wallet'}
+            {isConnecting ? 'Connecting...' : 
+             walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 
+             'Connect Wallet'}
           </Button>
         </div>
       </nav>
       
-      <main>
+      <main className="pt-16">
         {children}
       </main>
 
